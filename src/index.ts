@@ -38,7 +38,15 @@ setInterval(() => {
 
               const { date } = message;
 
-              console.log(date?.toLocaleString());
+              const head = message.headerLines
+                .filter(item => item.key === 'received')
+                .pop();
+
+              const regex = head?.line.match('for <(.*?)@cauemelo.dev>');
+
+              if (!regex)
+                throw new Error('Application failed to extract followup name.');
+
               api
                 .post('/recipients', {
                   msgId: message.messageId,
@@ -46,6 +54,7 @@ setInterval(() => {
                   fromEmail: email?.address,
                   toEmail: message.to?.text,
                   sentDate: date,
+                  followUpName: regex[1],
                 })
                 .catch(() => {
                   console.log('[!!!] Error in the request!!!');
