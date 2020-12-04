@@ -21,6 +21,7 @@
   "dependencies": {
     "@types/imap": "^0.8.31",
     "@types/mailparser": "^3.0.0",
+    "axios": "^0.21.0",
     "dotenv": "^8.2.0",
     "imap": "^0.8.19",
     "mailparser": "^3.0.0"
