@@ -20,7 +20,7 @@ setInterval(() => {
     imap.search(['UNSEEN'], (err: Error, results) => {
       if (err) throw err;
       try {
-        const search = imap.fetch(results, { bodies: '' });
+        const search = imap.fetch(results, { bodies: '', markSeen: true });
 
         search.on('message', (msg: ImapMessage) => {
           msg.on('body', stream => {
@@ -47,7 +47,7 @@ setInterval(() => {
               if (!regex)
                 throw new Error('Application failed to extract followup name.');
 
-              api
+              await api
                 .post('/recipients', {
                   msgId: message.messageId,
                   subject: message.subject,
@@ -70,7 +70,6 @@ setInterval(() => {
 
   imap.once('ready', () => {
     console.log('[Imap connected.]');
-
     imap.openBox('INBOX', false, (err: Error) => {
       if (err) throw new Error('[!!!] Error opening email box.');
 
