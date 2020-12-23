@@ -12,9 +12,6 @@ setInterval(() => {
     tls: false,
   });
 
-  // imap.setFlags([uuids], ['\Seen'], cb)
-  // para marcar como lido
-
   const searchUnread = () => {
     console.log('Searching for unread emails...');
     imap.search(['UNSEEN'], (err: Error, results) => {
@@ -74,13 +71,16 @@ setInterval(() => {
       if (err) throw new Error('[!!!] Error opening email box.');
 
       searchUnread();
-      // imap.end();
+      imap.end();
     });
   });
 
   imap.on('end', () => {
     console.log('[Connection closed.]');
   });
-
-  imap.connect();
+  try {
+    imap.connect();
+  } catch (error) {
+    console.log('[!!!] Connection error.');
+  }
 }, 5000);
