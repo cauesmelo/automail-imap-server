@@ -1,25 +1,28 @@
 import { simpleParser } from 'mailparser';
-import Imap, { ImapMessage } from 'imap';
+import Imap from 'imap';
 import 'dotenv/config';
 import api from './services/api';
 
-setInterval(() => {
-  const imap = new Imap({
-    user: process.env.USERNAME || '',
-    password: process.env.PASSWORD || '',
-    host: process.env.HOST,
-    port: 143,
-    tls: false,
-  });
+const imap = new Imap({
+  user: process.env.USERNAME || '',
+  password: process.env.PASSWORD || '',
+  host: process.env.HOST,
+  port: 143,
+  tls: false,
+});
 
-  const searchUnread = () => {
-    console.log('Searching for unread emails...');
-    imap.search(['UNSEEN'], (err: Error, results) => {
-      if (err) throw err;
+imap.once('ready', () => {
+  console.log('[Imap connected.]');
+
+  imap.openBox('INBOX', false, (err: Error) => {
+    if (err) throw err;
+
+    imap.search(['UNSEEN'], (error: Error, results) => {
+      if (error) throw error;
       try {
-        const search = imap.fetch(results, { bodies: '', markSeen: true });
-
-        search.on('message', (msg: ImapMessage) => {
+        console.log(`Emails found: ${results.length}`);
+        const f = imap.fetch(results, { bodies: '' });
+        f.on('message', msg => {
           msg.on('body', stream => {
             let buffer = '';
             stream.on('data', chunk => {
@@ -28,7 +31,7 @@ setInterval(() => {
             stream.once('end', async () => {
               const message = await simpleParser(buffer);
               console.log(
-                `Unread email found => from ${message.from?.text} | To: ${message.to?.text}`,
+                `Unread email found => FROM: ${message.from?.text} | To: ${message.to?.text} | ID: ${message.messageId}`,
               );
 
               const email = message.from?.value[0];
@@ -43,7 +46,6 @@ setInterval(() => {
 
               if (!regex)
                 throw new Error('Application failed to extract followup name.');
-
               await api
                 .post('/recipients', {
                   msgId: message.messageId,
@@ -55,32 +57,26 @@ setInterval(() => {
                 })
                 .catch(() => {
                   console.log('[!!!] Error in the request!!!');
+                  console.log(`Message ID: ${message.messageId} - REJECTED`);
                 });
+
+              imap.end();
             });
           });
         });
-      } catch (error) {
+      } catch (noEmailErr) {
         console.log('No e-mails to fetch.');
       }
     });
-  };
-
-  imap.once('ready', () => {
-    console.log('[Imap connected.]');
-    imap.openBox('INBOX', false, (err: Error) => {
-      if (err) throw new Error('[!!!] Error opening email box.');
-
-      searchUnread();
-      imap.end();
-    });
   });
+});
 
-  imap.on('end', () => {
-    console.log('[Connection closed.]');
-  });
-  try {
-    imap.connect();
-  } catch (error) {
-    console.log('[!!!] Connection error.');
-  }
-}, 5000);
+imap.on('end', () => {
+  console.log('[Connection closed.]');
+});
+
+try {
+  imap.connect();
+} catch (error) {
+  console.log('[!!!] Connection error.');
+}
