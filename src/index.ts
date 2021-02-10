@@ -21,7 +21,7 @@ imap.once('ready', () => {
       if (error) throw error;
       try {
         console.log(`Emails found: ${results.length}`);
-        const f = imap.fetch(results, { bodies: '' });
+        const f = imap.fetch(results, { bodies: '', markSeen: true });
         f.on('message', msg => {
           msg.on('body', stream => {
             let buffer = '';
@@ -66,6 +66,7 @@ imap.once('ready', () => {
         });
       } catch (noEmailErr) {
         console.log('No e-mails to fetch.');
+        imap.end();
       }
     });
   });
